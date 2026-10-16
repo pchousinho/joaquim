@@ -1,0 +1,360 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { getCollection } from 'astro:content';
+
+const animais = await getCollection('animais');
+
+const sortedAnimais = animais.sort((a, b) =>
+  a.data.name.localeCompare(b.data.name, 'pt'),
+);
+
+const baseUrl = import.meta.env.BASE_URL;
+---
+
+<BaseLayout
+  title="Espécies"
+  description="Fichas de animais, com informação sobre habitat, alimentação e comportamento."
+>
+  <header class="page-header">
+    <p class="eyebrow">CATÁLOGO DE ESPÉCIES</p>
+    <h1>Conheça as espécies.</h1>
+    <p class="intro">
+      Explore os animais, descubra onde vivem e conheça as características
+      que os distinguem.
+    </p>
+    <p class="result-count">
+      {sortedAnimais.length}
+      {sortedAnimais.length === 1 ? 'espécie catalogada' : 'espécies catalogadas'}
+    </p>
+  </header>
+
+  {sortedAnimais.length > 0 ? (
+    <section class="animal-list" aria-label="Espécies catalogadas">
+      {sortedAnimais.map((animal, index) => {
+        const imageSrc = animal.data.image
+          ? animal.data.image.startsWith('/')
+            ? `${baseUrl}${animal.data.image.slice(1)}`
+            : animal.data.image
+          : undefined;
+
+        return (
+          <a
+            class="animal"
+            href={`${baseUrl}animais/${animal.id}/`}
+          >
+            <div class="photo">
+              {imageSrc ? (
+                <img
+                  src={imageSrc}
+                  alt={animal.data.name}
+                  loading="lazy"
+                />
+              ) : (
+                <div class="image-placeholder">
+                  <span>{animal.data.group}</span>
+                </div>
+              )}
+
+              {animal.data.featured && (
+                <span class="featured-tag">Destaque</span>
+              )}
+
+              <span class="number">
+                {String(index + 1).padStart(2, '0')}
+              </span>
+              <span class="photo-arrow" aria-hidden="true">↗</span>
+            </div>
+
+            <div class="animal-info">
+              <p class="group">{animal.data.group}</p>
+              <h2>{animal.data.name}</h2>
+              <p class="scientific">{animal.data.scientificName}</p>
+              <p class="summary">{animal.data.summary}</p>
+              <span class="read-more">
+                Consultar ficha
+                <span aria-hidden="true">↗</span>
+              </span>
+            </div>
+          </a>
+        );
+      })}
+    </section>
+  ) : (
+    <div class="empty-state">
+      <h2>O catálogo está a começar.</h2>
+      <p>Adicione uma espécie para a apresentar nesta página.</p>
+    </div>
+  )}
+</BaseLayout>
+
+<style>
+  .page-header {
+    max-width: 700px;
+    padding: 3.75rem 0 2.5rem;
+  }
+
+  .eyebrow {
+    margin: 0 0 0.85rem;
+    color: #347451;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+  }
+
+  h1 {
+    margin: 0;
+    color: #202a23;
+    font-size: clamp(2.6rem, 5.5vw, 4rem);
+    font-weight: 700;
+    line-height: 1.1;
+    letter-spacing: -0.06em;
+  }
+
+  .intro {
+    max-width: 530px;
+    margin: 1rem 0 0;
+    color: #667068;
+    font-size: 1rem;
+    line-height: 1.8;
+  }
+
+  .result-count {
+    display: inline-flex;
+    align-items: center;
+    margin: 1.25rem 0 0;
+    padding: 0.35rem 0.65rem;
+    border: 1px solid #e2e8df;
+    border-radius: 7px;
+    background: #edf2eb;
+    color: #42644c;
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+
+  .animal-list {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: stretch;
+    gap: 1.5rem;
+    padding-bottom: 1rem;
+  }
+
+  .animal {
+    display: flex;
+    flex: 0 0 calc((100% - 3rem) / 3);
+    flex-direction: column;
+    max-width: calc((100% - 3rem) / 3);
+    min-width: 0;
+    overflow: hidden;
+    border: 1px solid #e7eae4;
+    border-radius: 14px;
+    background: #fff;
+    color: inherit;
+    text-decoration: none;
+    transition:
+      transform 0.2s ease,
+      border-color 0.2s ease;
+  }
+
+  .animal:hover {
+    transform: translateY(-3px);
+    border-color: #cbd8cc;
+  }
+
+  .photo {
+    position: relative;
+    overflow: hidden;
+    aspect-ratio: 4 / 3;
+    background: #e8ede6;
+  }
+
+  .photo img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.35s ease;
+  }
+
+  .animal:hover .photo img {
+    transform: scale(1.035);
+  }
+
+  .image-placeholder {
+    display: grid;
+    place-items: center;
+    width: 100%;
+    height: 100%;
+    padding: 1rem;
+    background: #e8ede6;
+    color: #657b68;
+    font-size: 0.9rem;
+    font-weight: 600;
+    text-align: center;
+  }
+
+  .featured-tag {
+    position: absolute;
+    top: 0.75rem;
+    right: 0.75rem;
+    z-index: 1;
+    padding: 0.4rem 0.65rem;
+    border: 1px solid rgb(255 255 255 / 20%);
+    border-radius: 7px;
+    background: #285b40;
+    color: #fff;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    line-height: 1.2;
+    box-shadow: 0 2px 8px rgb(0 0 0 / 12%);
+  }
+
+  .number {
+    position: absolute;
+    top: 0.75rem;
+    left: 0.75rem;
+    display: grid;
+    place-items: center;
+    min-width: 31px;
+    height: 28px;
+    padding: 0 0.4rem;
+    border: 1px solid rgb(255 255 255 / 65%);
+    border-radius: 7px;
+    background: rgb(255 255 255 / 93%);
+    color: #34463a;
+    font-size: 0.7rem;
+    font-weight: 700;
+  }
+
+  .photo-arrow {
+    position: absolute;
+    right: 0.75rem;
+    bottom: 0.75rem;
+    display: grid;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 9px;
+    background: rgb(255 255 255 / 94%);
+    color: #285b40;
+    opacity: 0;
+    transform: translateY(4px);
+    transition:
+      opacity 0.2s ease,
+      transform 0.2s ease;
+  }
+
+  .animal:hover .photo-arrow,
+  .animal:focus-visible .photo-arrow {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .animal-info {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 1.1rem 1.15rem 1.25rem;
+  }
+
+  .group {
+    margin: 0 0 0.3rem;
+    color: #347451;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  h2 {
+    margin: 0;
+    color: #202a23;
+    font-size: 1.3rem;
+    font-weight: 700;
+    line-height: 1.35;
+    letter-spacing: -0.035em;
+  }
+
+  .scientific {
+    margin: 0.25rem 0 0.8rem;
+    color: #7a837b;
+    font-size: 0.85rem;
+    font-style: italic;
+  }
+
+  .summary {
+    margin: 0;
+    color: #626c64;
+    font-size: 0.87rem;
+    line-height: 1.75;
+  }
+
+  .read-more {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: auto;
+    padding-top: 1.1rem;
+    color: #285b40;
+    font-size: 0.82rem;
+    font-weight: 600;
+  }
+
+  .empty-state {
+    padding: 2.5rem;
+    border: 1px dashed #d6ded5;
+    border-radius: 14px;
+    background: #fff;
+    text-align: center;
+  }
+
+  .empty-state h2 {
+    margin-bottom: 0.5rem;
+  }
+
+  .empty-state p {
+    margin: 0;
+    color: #667068;
+  }
+
+  @media (max-width: 800px) {
+    .page-header {
+      padding-top: 3rem;
+    }
+
+    .animal {
+      flex-basis: calc((100% - 1.5rem) / 2);
+      max-width: calc((100% - 1.5rem) / 2);
+    }
+  }
+
+  @media (max-width: 520px) {
+    .page-header {
+      padding: 2.5rem 0 2rem;
+    }
+
+    .animal {
+      flex-basis: 100%;
+      max-width: 100%;
+    }
+
+    .animal-list {
+      gap: 1.1rem;
+    }
+
+    .photo-arrow {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .animal,
+    .photo img,
+    .photo-arrow {
+      transition: none;
+    }
+  }
+</style>

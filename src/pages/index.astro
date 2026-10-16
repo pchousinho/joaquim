@@ -1,0 +1,650 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { getCollection } from 'astro:content';
+
+const animais = await getCollection('animais');
+
+const featured = animais.filter((animal) => animal.data.featured);
+const nonFeatured = animais.filter((animal) => !animal.data.featured);
+
+const leadAnimal = featured[0] ?? nonFeatured[0];
+
+const remainingAnimais = animais.filter(
+  (animal) => animal.id !== leadAnimal?.id,
+);
+
+const displayedAnimais = [
+  ...remainingAnimais.filter((animal) => animal.data.featured),
+  ...remainingAnimais.filter((animal) => !animal.data.featured),
+].slice(0, 3);
+
+const baseUrl = import.meta.env.BASE_URL;
+
+const getImageSrc = (image?: string) => {
+  if (!image) return undefined;
+
+  return image.startsWith('/')
+    ? `${baseUrl}${image.slice(1)}`
+    : image;
+};
+
+const leadImage = getImageSrc(leadAnimal?.data.image);
+---
+
+<BaseLayout title="Início">
+  <section class="hero">
+    <div class="hero-copy">
+      <p class="eyebrow">EXPLORAR A VIDA ANIMAL</p>
+      <h1>Descubra o mundo animal.</h1>
+      <p class="intro">
+        Conheça as espécies que habitam o nosso planeta. Explore os seus
+        habitats, a alimentação e as características que as tornam únicas.
+      </p>
+      <a class="primary-link" href={`${baseUrl}animais/`}>
+        Explorar espécies
+        <span aria-hidden="true">↗</span>
+      </a>
+    </div>
+
+    <div class="hero-image" data-random-hero>
+      {leadImage ? (
+        <img
+          src={leadImage}
+          alt={leadAnimal?.data.name ?? 'Animal em destaque'}
+          fetchpriority="high"
+        />
+      ) : (
+        <div class="image-placeholder">
+          <span>O mundo animal</span>
+        </div>
+      )}
+
+      {leadAnimal?.data.featured && (
+        <span class="featured-tag hero-featured-tag">Destaque</span>
+      )}
+
+      {leadAnimal && (
+        <a
+          class="image-caption"
+          href={`${baseUrl}animais/${leadAnimal.id}/`}
+        >
+          <span>
+            <strong>{leadAnimal.data.name}</strong>
+          </span>
+          <span class="caption-arrow" aria-hidden="true">↗</span>
+        </a>
+      )}
+    </div>
+  </section>
+
+  <section class="latest">
+    <div class="section-heading">
+      <div>
+        <p class="eyebrow">CATÁLOGO</p>
+        <h2>Espécies para conhecer</h2>
+        <p class="section-intro">
+          Cada animal tem características e formas de vida próprias.
+        </p>
+      </div>
+      <a class="secondary-link" href={`${baseUrl}animais/`}>
+        Ver todas as espécies
+        <span aria-hidden="true">↗</span>
+      </a>
+    </div>
+
+    <div class="animal-list" data-random-cards>
+      {displayedAnimais.map((animal) => {
+        const imageSrc = getImageSrc(animal.data.image);
+
+        return (
+          <a class="animal" href={`${baseUrl}animais/${animal.id}/`}>
+            <div class="photo">
+              {imageSrc ? (
+                <img
+                  src={imageSrc}
+                  alt={animal.data.name}
+                  loading="lazy"
+                />
+              ) : (
+                <div class="image-placeholder">
+                  <span>{animal.data.group}</span>
+                </div>
+              )}
+
+              {animal.data.featured && (
+                <span class="featured-tag">Destaque</span>
+              )}
+
+              <span class="photo-arrow" aria-hidden="true">↗</span>
+            </div>
+            <div class="animal-info">
+              <p class="group">{animal.data.group}</p>
+              <h3>{animal.data.name}</h3>
+              <p class="scientific">{animal.data.scientificName}</p>
+            </div>
+          </a>
+        );
+      })}
+    </div>
+
+    {animais.length === 0 && (
+      <p class="empty-state">
+        Ainda não existem espécies no catálogo.
+      </p>
+    )}
+  </section>
+
+  <div hidden aria-hidden="true">
+    {animais.map((animal) => {
+      const imageSrc = getImageSrc(animal.data.image);
+
+      return (
+        <>
+          <template
+            data-hero-template={animal.id}
+            data-featured={animal.data.featured ? 'true' : 'false'}
+          >
+            {imageSrc ? (
+              <img
+                src={imageSrc}
+                alt={animal.data.name}
+                fetchpriority="high"
+              />
+            ) : (
+              <div class="image-placeholder">
+                <span>{animal.data.group}</span>
+              </div>
+            )}
+
+            {animal.data.featured && (
+              <span class="featured-tag hero-featured-tag">Destaque</span>
+            )}
+
+            <a
+              class="image-caption"
+              href={`${baseUrl}animais/${animal.id}/`}
+            >
+              <span>
+                <strong>{animal.data.name}</strong>
+              </span>
+              <span class="caption-arrow" aria-hidden="true">↗</span>
+            </a>
+          </template>
+
+          <template data-card-template={animal.id}>
+            <a class="animal" href={`${baseUrl}animais/${animal.id}/`}>
+              <div class="photo">
+                {imageSrc ? (
+                  <img
+                    src={imageSrc}
+                    alt={animal.data.name}
+                    loading="lazy"
+                  />
+                ) : (
+                  <div class="image-placeholder">
+                    <span>{animal.data.group}</span>
+                  </div>
+                )}
+
+                {animal.data.featured && (
+                  <span class="featured-tag">Destaque</span>
+                )}
+
+                <span class="photo-arrow" aria-hidden="true">↗</span>
+              </div>
+              <div class="animal-info">
+                <p class="group">{animal.data.group}</p>
+                <h3>{animal.data.name}</h3>
+                <p class="scientific">{animal.data.scientificName}</p>
+              </div>
+            </a>
+          </template>
+        </>
+      );
+    })}
+  </div>
+</BaseLayout>
+
+<script is:inline>
+  (() => {
+    const heroImage = document.querySelector('[data-random-hero]');
+    const animalList = document.querySelector('[data-random-cards]');
+
+    if (!heroImage || !animalList) return;
+
+    const heroTemplates = Array.from(
+      document.querySelectorAll('template[data-hero-template]'),
+    );
+
+    const cardTemplates = Array.from(
+      document.querySelectorAll('template[data-card-template]'),
+    );
+
+    if (heroTemplates.length === 0) return;
+
+    function shuffle(array) {
+      const result = [...array];
+
+      for (let i = result.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [result[i], result[j]] = [result[j], result[i]];
+      }
+
+      return result;
+    }
+
+    const shuffledFeatured = shuffle(
+      heroTemplates.filter(
+        (template) => template.dataset.featured === 'true',
+      ),
+    );
+
+    const shuffledNormal = shuffle(
+      heroTemplates.filter(
+        (template) => template.dataset.featured !== 'true',
+      ),
+    );
+
+    // O destaque principal é escolhido aleatoriamente entre os featured.
+    // Se não existirem featured, escolhe um animal normal.
+    const leadTemplate = shuffledFeatured[0] ?? shuffledNormal[0];
+
+    if (!leadTemplate) return;
+
+    const leadId = leadTemplate.dataset.heroTemplate;
+
+    // Mantém a marcação original do Astro, sem reconstruir o HTML.
+    heroImage.replaceChildren(
+      leadTemplate.content.cloneNode(true),
+    );
+
+    // O animal principal não pode aparecer novamente nos cards menores.
+    const remainingFeatured = shuffledFeatured.filter(
+      (template) => template.dataset.heroTemplate !== leadId,
+    );
+
+    const remainingNormal = shuffledNormal.filter(
+      (template) => template.dataset.heroTemplate !== leadId,
+    );
+
+    // Prioriza os restantes featured e completa com animais normais.
+    const selectedTemplates = [
+      ...remainingFeatured,
+      ...remainingNormal,
+    ].slice(0, 3);
+
+    const cardsById = new Map(
+      cardTemplates.map((template) => [
+        template.dataset.cardTemplate,
+        template,
+      ]),
+    );
+
+    const cards = selectedTemplates
+      .map((template) => cardsById.get(template.dataset.heroTemplate))
+      .filter(Boolean)
+      .map((template) => template.content.cloneNode(true));
+
+    animalList.replaceChildren(...cards);
+  })();
+</script>
+
+<style>
+  .hero {
+    display: grid;
+    grid-template-columns: 0.9fr 1.1fr;
+    align-items: center;
+    gap: clamp(2rem, 5vw, 4.5rem);
+    padding: 4rem 0 5rem;
+  }
+
+  .hero-copy {
+    max-width: 470px;
+    padding: 1rem 0;
+  }
+
+  .eyebrow {
+    margin: 0 0 1rem;
+    color: #347451;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+  }
+
+  h1 {
+    margin: 0;
+    color: #202a23;
+    font-size: clamp(2.8rem, 5.2vw, 4.5rem);
+    font-weight: 700;
+    line-height: 1.08;
+    letter-spacing: -0.065em;
+  }
+
+  .intro {
+    max-width: 410px;
+    margin: 1.3rem 0 1.8rem;
+    color: #667068;
+    font-size: 1rem;
+    line-height: 1.8;
+  }
+
+  .primary-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1.2rem;
+    min-height: 46px;
+    padding: 0.75rem 1.1rem;
+    border: 1px solid #285b40;
+    border-radius: 10px;
+    background: #285b40;
+    color: #fff;
+    font-size: 0.88rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition:
+      background 0.2s ease,
+      transform 0.2s ease;
+  }
+
+  .primary-link:hover {
+    transform: translateY(-1px);
+    background: #214b34;
+  }
+
+  .hero-image {
+    position: relative;
+    min-width: 0;
+    overflow: hidden;
+    border-radius: 16px;
+    background: #e8ede6;
+  }
+
+  .hero-image > img,
+  .hero-image > .image-placeholder {
+    display: grid;
+    width: 100%;
+    aspect-ratio: 5 / 4;
+    object-fit: cover;
+  }
+
+  .image-placeholder {
+    place-items: center;
+    padding: 2rem;
+    background: #e8ede6;
+    color: #657b68;
+    font-size: 1.1rem;
+    font-weight: 600;
+    text-align: center;
+  }
+
+  .image-caption {
+    position: absolute;
+    right: 1rem;
+    bottom: 1rem;
+    left: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.9rem 1rem;
+    border: 1px solid rgb(255 255 255 / 55%);
+    border-radius: 11px;
+    background: rgb(255 255 255 / 94%);
+    color: #202a23;
+    text-decoration: none;
+    backdrop-filter: blur(8px);
+  }
+
+  .image-caption > span:first-child {
+    display: grid;
+    gap: 0.15rem;
+  }
+
+  .image-caption strong {
+    font-size: 0.95rem;
+  }
+
+  .caption-arrow {
+    display: grid;
+    flex-shrink: 0;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 9px;
+    background: #e8ede6;
+    color: #285b40;
+  }
+
+  .latest {
+    padding: 1.5rem 0 1rem;
+  }
+
+  .section-heading {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: 2rem;
+    margin-bottom: 1.75rem;
+  }
+
+  .section-heading .eyebrow {
+    margin-bottom: 0.5rem;
+  }
+
+  h2 {
+    margin: 0;
+    color: #202a23;
+    font-size: clamp(1.8rem, 3vw, 2.5rem);
+    font-weight: 700;
+    line-height: 1.2;
+    letter-spacing: -0.045em;
+  }
+
+  .section-intro {
+    margin: 0.55rem 0 0;
+    color: #727b73;
+    font-size: 0.9rem;
+  }
+
+  .secondary-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    flex-shrink: 0;
+    padding-bottom: 0.3rem;
+    color: #285b40;
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-decoration: none;
+  }
+
+  .secondary-link:hover {
+    text-decoration: underline;
+    text-underline-offset: 4px;
+  }
+
+  .animal-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+  }
+
+  .animal {
+    flex: 0 0 calc((100% - 3rem) / 3);
+    max-width: calc((100% - 3rem) / 3);
+    min-width: 0;
+    overflow: hidden;
+    border: 1px solid #e7eae4;
+    border-radius: 14px;
+    background: #fff;
+    text-decoration: none;
+    transition:
+      border-color 0.2s ease,
+      transform 0.2s ease;
+  }
+
+  .animal:hover {
+    transform: translateY(-3px);
+    border-color: #cbd8cc;
+  }
+
+  .photo {
+    position: relative;
+    overflow: hidden;
+    aspect-ratio: 4 / 3;
+    background: #e8ede6;
+  }
+
+  .photo img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.35s ease;
+  }
+
+  .animal:hover .photo img {
+    transform: scale(1.035);
+  }
+
+  .photo .image-placeholder {
+    width: 100%;
+    height: 100%;
+    font-size: 0.9rem;
+  }
+
+  .featured-tag {
+    position: absolute;
+    top: 0.75rem;
+    right: 0.75rem;
+    z-index: 2;
+    padding: 0.35rem 0.6rem;
+    border-radius: 7px;
+    background: #285b40;
+    color: #fff;
+    font-size: 0.7rem;
+    font-weight: 600;
+  }
+
+  .hero-featured-tag {
+    top: 1rem;
+    right: 1rem;
+  }
+
+  .photo-arrow {
+    position: absolute;
+    right: 0.75rem;
+    bottom: 0.75rem;
+    display: grid;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 9px;
+    background: rgb(255 255 255 / 94%);
+    color: #285b40;
+    opacity: 0;
+    transform: translateY(4px);
+    transition:
+      opacity 0.2s ease,
+      transform 0.2s ease;
+  }
+
+  .animal:hover .photo-arrow,
+  .animal:focus-visible .photo-arrow {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .animal-info {
+    padding: 1rem 1.1rem 1.2rem;
+  }
+
+  .group {
+    margin: 0 0 0.3rem;
+    color: #347451;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  h3 {
+    margin: 0;
+    color: #202a23;
+    font-size: 1.2rem;
+    font-weight: 700;
+    line-height: 1.35;
+    letter-spacing: -0.03em;
+  }
+
+  .scientific {
+    margin: 0.25rem 0 0;
+    color: #7a837b;
+    font-size: 0.85rem;
+    font-style: italic;
+  }
+
+  .empty-state {
+    padding: 2rem;
+    border: 1px dashed #d6ded5;
+    border-radius: 12px;
+    color: #667068;
+    text-align: center;
+  }
+
+  @media (max-width: 800px) {
+    .hero {
+      grid-template-columns: 1fr 1fr;
+      gap: 2rem;
+      padding-top: 3rem;
+    }
+
+    .animal {
+      flex-basis: calc((100% - 1.5rem) / 2);
+      max-width: calc((100% - 1.5rem) / 2);
+    }
+  }
+
+  @media (max-width: 560px) {
+    .hero {
+      grid-template-columns: 1fr;
+      gap: 1.75rem;
+      padding: 2.5rem 0 3rem;
+    }
+
+    h1 {
+      font-size: clamp(2.7rem, 12vw, 3.6rem);
+    }
+
+    .hero-image > img,
+    .hero-image > .image-placeholder {
+      aspect-ratio: 4 / 3;
+    }
+
+    .section-heading {
+      align-items: flex-start;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .animal {
+      flex-basis: 100%;
+      max-width: 100%;
+    }
+
+    .photo-arrow {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .animal,
+    .photo img,
+    .photo-arrow,
+    .primary-link {
+      transition: none;
+    }
+  }
+</style>

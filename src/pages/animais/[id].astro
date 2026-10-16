@@ -1,0 +1,206 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import AnimalDistributionMap from '../../components/AnimalDistributionMap.astro';
+import { getCollection, render } from 'astro:content';
+
+export async function getStaticPaths() {
+  const animais = await getCollection('animais');
+
+  return animais.map((animal) => ({
+    params: { id: animal.id },
+    props: { animal },
+  }));
+}
+
+const { animal } = Astro.props;
+const { Content } = await render(animal);
+
+const baseUrl = import.meta.env.BASE_URL;
+
+const imageSrc = animal.data.image
+  ? animal.data.image.startsWith('/')
+    ? `${baseUrl}${animal.data.image.slice(1)}`
+    : animal.data.image
+  : undefined;
+
+const distributionText = Array.isArray(animal.data.distribution)
+  ? animal.data.distribution.join(', ')
+  : animal.data.distribution;
+
+const distributionCodes = Array.isArray(animal.data.distribution)
+  ? animal.data.distribution
+  : [];
+---
+
+<BaseLayout
+  title={animal.data.name}
+  description={animal.data.summary}
+>
+  <article class="animal-page">
+    <a class="back-link" href={`${baseUrl}animais/`}>
+      ← Voltar ao catálogo
+    </a>
+
+    <header class="animal-header">
+      <p class="eyebrow">{animal.data.group}</p>
+      <h1>{animal.data.name}</h1>
+      <p class="scientific">{animal.data.scientificName}</p>
+      <p class="summary">{animal.data.summary}</p>
+    </header>
+
+    {imageSrc && (
+      <img
+        class="animal-image"
+        src={imageSrc}
+        alt={animal.data.name}
+      />
+    )}
+
+    <section class="details">
+      <h2>Ficha do animal</h2>
+      <dl>
+        <dt>Habitat</dt>
+        <dd>{animal.data.habitat}</dd>
+
+        <dt>Alimentação</dt>
+        <dd>{animal.data.diet}</dd>
+
+        {distributionText && (
+          <>
+            <dt>Distribuição geográfica</dt>
+            <dd>{distributionText}</dd>
+          </>
+        )}
+
+        {animal.data.size && (
+          <>
+            <dt>Comprimento</dt>
+            <dd>{animal.data.size}</dd>
+          </>
+        )}
+
+        {animal.data.weight && (
+          <>
+            <dt>Peso</dt>
+            <dd>{animal.data.weight}</dd>
+          </>
+        )}
+
+        {animal.data.lifespan && (
+          <>
+            <dt>Esperança de vida</dt>
+            <dd>{animal.data.lifespan}</dd>
+          </>
+        )}
+      </dl>
+    </section>
+
+    {distributionCodes.length > 0 && (
+      <AnimalDistributionMap
+        distribution={distributionCodes}
+      />
+    )}
+
+    <section class="animal-description">
+      <Content />
+    </section>
+  </article>
+</BaseLayout>
+
+<style>
+  .animal-page {
+    padding: 2rem 0 3rem;
+  }
+
+  .back-link {
+    color: #244e35;
+    text-decoration: none;
+    font-weight: 700;
+  }
+
+  .back-link:hover {
+    text-decoration: underline;
+    text-underline-offset: 4px;
+  }
+
+  .animal-header {
+    padding: 1rem 0;
+  }
+
+  .eyebrow {
+    color: #58744e;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  h1 {
+    margin: 0.5rem 0;
+    font-size: clamp(2.2rem, 6vw, 3.5rem);
+    line-height: 1.1;
+  }
+
+  .scientific {
+    font-style: italic;
+    color: #58744e;
+  }
+
+  .summary {
+    max-width: 700px;
+    font-size: 1.1rem;
+    line-height: 1.7;
+  }
+
+  .animal-image {
+    display: block;
+    width: 100%;
+    max-height: 480px;
+    object-fit: cover;
+    border-radius: 1rem;
+  }
+
+  .details {
+    padding: 1.5rem;
+    border-radius: 1rem;
+    background: #e4eadb;
+  }
+
+  .details h2 {
+    margin-top: 0;
+  }
+
+  dl {
+    display: grid;
+    grid-template-columns: minmax(130px, 200px) 1fr;
+    gap: 0.75rem 1rem;
+  }
+
+  dt {
+    font-weight: 700;
+  }
+
+  dd {
+    margin: 0;
+  }
+
+  .animal-description {
+    margin-top: 2rem;
+    line-height: 1.8;
+  }
+
+  .animal-description h2 {
+    margin-top: 2rem;
+  }
+
+  @media (max-width: 520px) {
+    dl {
+      grid-template-columns: 1fr;
+      gap: 0.25rem;
+    }
+
+    dd {
+      margin-bottom: 0.75rem;
+    }
+  }
+</style>

@@ -1,0 +1,570 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { getCollection } from 'astro:content';
+
+const animais = await getCollection('animais');
+
+const sortedAnimais = animais.sort((a, b) =>
+  a.data.name.localeCompare(b.data.name, 'pt'),
+);
+
+const baseUrl = import.meta.env.BASE_URL;
+---
+
+<BaseLayout
+  title="Pesquisar espécies"
+  description="Pesquise animais por nome, nome científico, grupo ou características."
+>
+  <section class="search-page">
+    <header class="page-header">
+      <p class="eyebrow">PESQUISA NO CATÁLOGO</p>
+      <h1>Encontre uma espécie.</h1>
+      <p class="intro">
+        Pesquise pelo nome do animal ou por características como habitat,
+        alimentação e grupo.
+      </p>
+    </header>
+
+    <form id="animal-search-form" class="search-form" role="search">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <circle cx="10.8" cy="10.8" r="6.8" />
+        <path d="m16 16 5 5" />
+      </svg>
+      <input
+        id="animal-search-input"
+        type="search"
+        name="q"
+        placeholder="Ex.: onça-pintada, mamífero, floresta..."
+        aria-label="Pesquisar animais"
+      />
+      <button type="submit">Pesquisar</button>
+    </form>
+
+    <div class="results-heading">
+      <p id="results-description" aria-live="polite">
+        Introduza um termo para pesquisar no catálogo.
+      </p>
+    </div>
+
+    <section
+      id="animal-results"
+      class="animal-list"
+      aria-label="Resultados da pesquisa"
+    >
+      {sortedAnimais.map((animal, index) => {
+        const imageSrc = animal.data.image
+          ? animal.data.image.startsWith('/')
+            ? `${baseUrl}${animal.data.image.slice(1)}`
+            : animal.data.image
+          : undefined;
+
+        const searchText = [
+          animal.data.name,
+          animal.data.scientificName,
+          animal.data.group,
+          animal.data.summary,
+          animal.data.habitat,
+          animal.data.diet,
+          animal.data.distribution ?? '',
+          animal.data.size ?? '',
+          animal.data.weight ?? '',
+          animal.data.lifespan ?? '',
+        ].join(' ');
+
+        return (
+          <a
+            class="animal"
+            href={`${baseUrl}animais/${animal.id}/`}
+            data-search={searchText}
+          >
+            <div class="photo">
+              {imageSrc ? (
+                <img
+                  src={imageSrc}
+                  alt={animal.data.name}
+                  loading="lazy"
+                />
+              ) : (
+                <div class="image-placeholder">
+                  <span>{animal.data.group}</span>
+                </div>
+              )}
+              <span class="number">
+                {String(index + 1).padStart(2, '0')}
+              </span>
+              <span class="photo-arrow" aria-hidden="true">↗</span>
+            </div>
+
+            <div class="animal-info">
+              <p class="group">{animal.data.group}</p>
+              <h2>{animal.data.name}</h2>
+              <p class="scientific">{animal.data.scientificName}</p>
+              <p class="summary">{animal.data.summary}</p>
+              <span class="read-more">
+                Consultar ficha
+                <span aria-hidden="true">↗</span>
+              </span>
+            </div>
+          </a>
+        );
+      })}
+    </section>
+
+    <div id="no-results" class="no-results" hidden>
+      <span class="empty-icon" aria-hidden="true">⌕</span>
+      <h2>Não encontrámos essa espécie.</h2>
+      <p>
+        Experimente outro nome ou pesquise por grupo, habitat ou alimentação.
+      </p>
+      <button id="clear-search" type="button">Limpar pesquisa</button>
+    </div>
+
+    <a class="back-link" href={`${baseUrl}animais/`}>
+      ← Ver todas as espécies
+    </a>
+  </section>
+</BaseLayout>
+
+<script>
+  const form = document.querySelector<HTMLFormElement>('#animal-search-form');
+  const input = document.querySelector<HTMLInputElement>('#animal-search-input');
+  const description = document.querySelector<HTMLElement>('#results-description');
+  const results = document.querySelector<HTMLElement>('#animal-results');
+  const noResults = document.querySelector<HTMLElement>('#no-results');
+  const clearButton = document.querySelector<HTMLButtonElement>('#clear-search');
+
+  const normalize = (value: string) =>
+    value
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLocaleLowerCase('pt')
+      .trim();
+
+  function searchAnimals(query: string, updateUrl = true) {
+    if (!input || !description || !results || !noResults) return;
+
+    const normalizedQuery = normalize(query);
+    const cards = Array.from(
+      results.querySelectorAll<HTMLElement>('.animal'),
+    );
+
+    const matches = cards.filter((card) => {
+      const searchableText = normalize(card.dataset.search ?? '');
+      const found =
+        normalizedQuery === '' ||
+        searchableText.includes(normalizedQuery);
+
+      card.hidden = !found;
+      return found;
+    });
+
+    if (!normalizedQuery) {
+      description.textContent =
+        `${matches.length} ${matches.length === 1 ? 'espécie disponível' : 'espécies disponíveis'}`;
+    } else if (matches.length === 1) {
+      description.textContent = `1 espécie encontrada para "${query}".`;
+    } else {
+      description.textContent =
+        `${matches.length} espécies encontradas para "${query}".`;
+    }
+
+    noResults.hidden = matches.length > 0;
+    results.hidden = matches.length === 0;
+    input.value = query;
+
+    if (updateUrl) {
+      const url = new URL(window.location.href);
+
+      if (normalizedQuery) {
+        url.searchParams.set('q', query);
+      } else {
+        url.searchParams.delete('q');
+      }
+
+      window.history.replaceState({}, '', url);
+    }
+  }
+
+  form?.addEventListener('submit', (event) => {
+    event.preventDefault();
+    searchAnimals(input?.value ?? '');
+  });
+
+  clearButton?.addEventListener('click', () => {
+    searchAnimals('');
+    input?.focus();
+  });
+
+  const initialQuery =
+    new URLSearchParams(window.location.search).get('q') ?? '';
+
+  searchAnimals(initialQuery, false);
+</script>
+
+<style>
+  .search-page {
+    width: 100%;
+    max-width: none;
+    padding: 3.75rem 0 1rem;
+  }
+
+  .page-header {
+    max-width: 720px;
+  }
+
+  .eyebrow {
+    margin: 0 0 0.85rem;
+    color: #347451;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+  }
+
+  h1 {
+    margin: 0;
+    color: #202a23;
+    font-size: clamp(2.6rem, 5.5vw, 4rem);
+    font-weight: 700;
+    line-height: 1.1;
+    letter-spacing: -0.06em;
+  }
+
+  .intro {
+    max-width: 560px;
+    margin: 1rem 0 0;
+    color: #667068;
+    font-size: 1rem;
+    line-height: 1.8;
+  }
+
+  .search-form {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    width: 100%;
+    max-width: none;
+    min-height: 58px;
+    margin: 2rem 0 1.75rem;
+    padding: 0.4rem 0.45rem 0.4rem 1rem;
+    border: 1px solid #e0e6de;
+    border-radius: 12px;
+    background: #fff;
+    transition: border-color 0.2s ease;
+  }
+
+  .search-form:focus-within {
+    border-color: #8da995;
+  }
+
+  .search-form > svg {
+    width: 21px;
+    height: 21px;
+    flex-shrink: 0;
+    fill: none;
+    stroke: #748078;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+  }
+
+  .search-form input {
+    flex: 1;
+    width: 100%;
+    min-width: 0;
+    padding: 0.65rem 0;
+    border: 0;
+    outline: none;
+    background: transparent;
+    color: #202a23;
+    font-size: 0.9rem;
+  }
+
+  .search-form input::placeholder {
+    color: #929a92;
+  }
+
+  .search-form button,
+  #clear-search {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 40px;
+    padding: 0.6rem 1rem;
+    border: 0;
+    border-radius: 8px;
+    background: #285b40;
+    color: #fff;
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s ease;
+  }
+
+  .search-form button:hover,
+  #clear-search:hover {
+    background: #214b34;
+  }
+
+  .results-heading {
+    margin: 0 0 1.25rem;
+  }
+
+  #results-description {
+    margin: 0;
+    color: #707a71;
+    font-size: 0.85rem;
+  }
+
+  .animal-list {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    align-items: stretch;
+    gap: 1.5rem;
+    width: 100%;
+    padding-bottom: 1.5rem;
+  }
+
+  .animal-list[hidden] {
+    display: none;
+  }
+
+  .animal {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    min-width: 0;
+    overflow: hidden;
+    border: 1px solid #e7eae4;
+    border-radius: 14px;
+    background: #fff;
+    color: inherit;
+    text-decoration: none;
+    transition:
+      transform 0.2s ease,
+      border-color 0.2s ease;
+  }
+
+  .animal[hidden] {
+    display: none;
+  }
+
+  .animal:hover {
+    transform: translateY(-3px);
+    border-color: #cbd8cc;
+  }
+
+  .photo {
+    position: relative;
+    overflow: hidden;
+    aspect-ratio: 4 / 3;
+    background: #e8ede6;
+  }
+
+  .photo img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.35s ease;
+  }
+
+  .animal:hover .photo img {
+    transform: scale(1.035);
+  }
+
+  .image-placeholder {
+    display: grid;
+    place-items: center;
+    width: 100%;
+    height: 100%;
+    padding: 1rem;
+    background: #e8ede6;
+    color: #657b68;
+    font-size: 0.9rem;
+    font-weight: 600;
+    text-align: center;
+  }
+
+  .number {
+    position: absolute;
+    top: 0.75rem;
+    left: 0.75rem;
+    display: grid;
+    place-items: center;
+    min-width: 31px;
+    height: 28px;
+    padding: 0 0.4rem;
+    border: 1px solid rgb(255 255 255 / 65%);
+    border-radius: 7px;
+    background: rgb(255 255 255 / 93%);
+    color: #34463a;
+    font-size: 0.7rem;
+    font-weight: 700;
+  }
+
+  .photo-arrow {
+    position: absolute;
+    right: 0.75rem;
+    bottom: 0.75rem;
+    display: grid;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 9px;
+    background: rgb(255 255 255 / 94%);
+    color: #285b40;
+    opacity: 0;
+    transform: translateY(4px);
+    transition:
+      opacity 0.2s ease,
+      transform 0.2s ease;
+  }
+
+  .animal:hover .photo-arrow,
+  .animal:focus-visible .photo-arrow {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .animal-info {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 1.1rem 1.15rem 1.25rem;
+  }
+
+  .group {
+    margin: 0 0 0.3rem;
+    color: #347451;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  h2 {
+    margin: 0;
+    color: #202a23;
+    font-size: 1.3rem;
+    font-weight: 700;
+    line-height: 1.35;
+    letter-spacing: -0.035em;
+  }
+
+  .scientific {
+    margin: 0.25rem 0 0.8rem;
+    color: #7a837b;
+    font-size: 0.85rem;
+    font-style: italic;
+  }
+
+  .summary {
+    margin: 0;
+    color: #626c64;
+    font-size: 0.87rem;
+    line-height: 1.75;
+  }
+
+  .read-more {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: auto;
+    padding-top: 1.1rem;
+    color: #285b40;
+    font-size: 0.82rem;
+    font-weight: 600;
+  }
+
+  .no-results {
+    margin: 1rem 0 2rem;
+    padding: 2.5rem 1.5rem;
+    border: 1px solid #e7eae4;
+    border-radius: 14px;
+    background: #fff;
+    text-align: center;
+  }
+
+  .no-results[hidden] {
+    display: none;
+  }
+
+  .empty-icon {
+    display: inline-grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: #edf2eb;
+    color: #347451;
+    font-size: 1.8rem;
+  }
+
+  .no-results h2 {
+    margin-top: 1rem;
+  }
+
+  .no-results p {
+    margin: 0.5rem 0 1.25rem;
+    color: #707a71;
+    font-size: 0.9rem;
+  }
+
+  .back-link {
+    display: inline-flex;
+    margin-top: 0.5rem;
+    color: #285b40;
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-decoration: none;
+  }
+
+  .back-link:hover {
+    text-decoration: underline;
+    text-underline-offset: 4px;
+  }
+
+  @media (max-width: 800px) {
+    .search-page {
+      padding-top: 3rem;
+    }
+
+    .animal-list {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 1.25rem;
+    }
+  }
+
+  @media (max-width: 520px) {
+    .search-page {
+      padding-top: 2.5rem;
+    }
+
+    .search-form {
+      gap: 0.5rem;
+      padding-left: 0.75rem;
+    }
+
+    .search-form button {
+      padding-inline: 0.75rem;
+    }
+
+    .animal-list {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 1.1rem;
+    }
+
+    .photo-arrow {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .animal,
+    .photo img,
+    .photo-arrow {
+      transition: none;
+    }
+  }
+</style>

@@ -1,0 +1,276 @@
+---
+interface Props {
+  title: string;
+  description?: string;
+}
+
+const {
+  title,
+  description = 'Informações sobre espécies animais, os seus habitats e os seus hábitos.',
+} = Astro.props;
+
+const baseUrl = import.meta.env.BASE_URL;
+---
+
+<!doctype html>
+<html lang="pt">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content={description} />
+    <meta name="generator" content={Astro.generator} />
+    <meta name="theme-color" content="#f7f8f5" />
+    <title>{title} | Joaquim Chousinho</title>
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href={baseUrl} aria-label="Página inicial">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none">
+            <path d="M19.5 4.5C11 4.5 5 8 5 14a5.5 5.5 0 0 0 5.5 5.5c6 0 9-6 9-15Z" />
+            <path d="M4 21c2.5-5 6-8 11-11" />
+          </svg>
+        </span>
+        <span>Joaquim Chousinho</span>
+      </a>
+
+      <nav aria-label="Navegação principal">
+        <a class="nav-link" href={baseUrl}>Início</a>
+        <a class="nav-link" href={`${baseUrl}animais/`}>Espécies</a>
+        <form action={`${baseUrl}pesquisa/`} method="get" role="search">
+          <input
+            type="search"
+            name="q"
+            placeholder="Pesquisar espécies"
+            aria-label="Pesquisar espécies"
+          />
+          <button type="submit" aria-label="Pesquisar">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="10.8" cy="10.8" r="6.8" />
+              <path d="m16 16 5 5" />
+            </svg>
+          </button>
+        </form>
+      </nav>
+    </header>
+
+    <main>
+      <slot />
+    </main>
+
+    <footer class="site-footer">
+      <a class="footer-brand" href={baseUrl}>Joaquim Chousinho</a>
+      <p>Espécies, habitats e formas de vida.</p>
+    </footer>
+  </body>
+</html>
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap');
+
+  :global(*) {
+    box-sizing: border-box;
+  }
+
+  :global(html) {
+    background: #f7f8f5;
+    scroll-behavior: smooth;
+  }
+
+  :global(body) {
+    margin: 0;
+    color: #202a23;
+    font-family: 'DM Sans', Arial, sans-serif;
+    font-size: 15px;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  :global(a) {
+    color: inherit;
+  }
+
+  :global(button),
+  :global(input) {
+    font: inherit;
+  }
+
+  :global(button:focus-visible),
+  :global(a:focus-visible),
+  :global(input:focus-visible) {
+    outline: 2px solid #347451;
+    outline-offset: 3px;
+  }
+
+  .site-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 2rem;
+    min-height: 78px;
+    padding: 1rem max(1.5rem, calc((100% - 1160px) / 2));
+    border-bottom: 1px solid #e7eae4;
+    background: #f7f8f5;
+  }
+
+  .brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.7rem;
+    flex-shrink: 0;
+    color: #202a23;
+    font-size: 0.95rem;
+    font-weight: 700;
+    letter-spacing: -0.025em;
+    text-decoration: none;
+  }
+
+  .brand-mark {
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 11px;
+    background: #e7efe7;
+    color: #285b40;
+  }
+
+  .brand-mark svg {
+    width: 21px;
+    height: 21px;
+    stroke: currentColor;
+    stroke-width: 1.7;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  nav {
+    display: flex;
+    align-items: center;
+    gap: 1.7rem;
+  }
+
+  .nav-link {
+    color: #48534b;
+    font-size: 0.88rem;
+    font-weight: 500;
+    text-decoration: none;
+    transition: color 0.2s ease;
+  }
+
+  .nav-link:hover {
+    color: #285b40;
+  }
+
+  nav form {
+    display: flex;
+    align-items: center;
+    width: 220px;
+    min-height: 40px;
+    padding: 0 0.7rem 0 0.9rem;
+    border: 1px solid #e2e6df;
+    border-radius: 10px;
+    background: #fff;
+    transition: border-color 0.2s ease;
+  }
+
+  nav form:focus-within {
+    border-color: #8da995;
+  }
+
+  nav input {
+    width: 100%;
+    min-width: 0;
+    padding: 0.45rem 0;
+    border: 0;
+    outline: none;
+    background: transparent;
+    color: #202a23;
+    font-size: 0.8rem;
+  }
+
+  nav input::placeholder {
+    color: #929a92;
+  }
+
+  nav button {
+    display: grid;
+    flex-shrink: 0;
+    place-items: center;
+    padding: 0.25rem;
+    border: 0;
+    background: transparent;
+    color: #526358;
+    cursor: pointer;
+  }
+
+  nav button svg {
+    width: 18px;
+    height: 18px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+  }
+
+  main {
+    width: min(1160px, calc(100% - 3rem));
+    min-height: 68vh;
+    margin: 0 auto;
+  }
+
+  .site-footer {
+    margin-top: 5rem;
+    padding: 2.5rem 1.5rem;
+    border-top: 1px solid #e7eae4;
+    text-align: center;
+  }
+
+  .footer-brand {
+    color: #202a23;
+    font-size: 0.95rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    text-decoration: none;
+  }
+
+  .site-footer p {
+    margin: 0.35rem 0 0;
+    color: #788178;
+    font-size: 0.82rem;
+  }
+
+  @media (max-width: 760px) {
+    .site-header {
+      align-items: stretch;
+      flex-direction: column;
+      gap: 1rem;
+      padding: 1rem 1.25rem;
+    }
+
+    nav {
+      flex-wrap: wrap;
+      gap: 1rem 1.25rem;
+    }
+
+    nav form {
+      flex: 1 1 100%;
+      width: 100%;
+    }
+
+    main {
+      width: calc(100% - 2rem);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    :global(html) {
+      scroll-behavior: auto;
+    }
+
+    :global(*) {
+      transition-duration: 0.01ms !important;
+    }
+  }
+</style>

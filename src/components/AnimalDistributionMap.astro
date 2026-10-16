@@ -1,0 +1,234 @@
+---
+import { geoNaturalEarth1, geoPath } from 'd3-geo';
+import countries from '../data/countries.json';
+
+interface Props {
+  distribution?: string[];
+  title?: string;
+}
+
+const {
+  distribution = [],
+  title = 'Distribuição geográfica',
+} = Astro.props;
+
+const world = countries as {
+  type: 'FeatureCollection';
+  features: Array<{
+    type: 'Feature';
+    properties: Record<string, string | undefined>;
+    geometry: unknown;
+  }>;
+};
+
+const selectedCodes = new Set(
+  distribution.map((code) => code.trim().toUpperCase()),
+);
+
+const projection = geoNaturalEarth1().fitSize([960, 500], world as never);
+const pathGenerator = geoPath(projection);
+
+const countriesWithPaths = world.features
+  .map((country) => {
+    const code = country.properties['ISO3166-1-Alpha-2'];
+    const name = country.properties.name ?? code ?? 'País';
+    const path = pathGenerator(country as never);
+
+    return {
+      code,
+      name,
+      path,
+      highlighted: Boolean(code && selectedCodes.has(code)),
+    };
+  })
+  .filter((country) => country.path);
+
+const matchedCountries = countriesWithPaths.filter(
+  (country) => country.highlighted,
+);
+---
+
+<section class="distribution">
+  <div class="heading">
+    <div>
+      <p class="eyebrow">HABITAT E DISTRIBUIÇÃO</p>
+      <h2>{title}</h2>
+    </div>
+    <span class="legend">
+      <span class="legend-color" aria-hidden="true"></span>
+      Países selecionados
+    </span>
+  </div>
+
+  {distribution.length > 0 ? (
+    <>
+      <div class="map-frame">
+        <svg
+          viewBox="0 0 960 500"
+          role="img"
+          aria-label={`${title}. Países destacados: ${matchedCountries.map((country) => country.name).join(', ') || 'nenhum país encontrado'}.`}
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          {countriesWithPaths.map((country) => (
+            <path
+              d={country.path!}
+              class:list={['country', { highlighted: country.highlighted }]}
+              aria-label={country.name}
+            />
+          ))}
+        </svg>
+      </div>
+
+      {matchedCountries.length > 0 ? (
+        <div class="country-list">
+          <h3>Países assinalados</h3>
+          <ul>
+            {matchedCountries.map((country) => (
+              <li>{country.name}</li>
+            ))}
+          </ul>
+        </div>
+      ) : (
+        <p class="map-note">
+          Não foram encontrados países correspondentes aos códigos
+          configurados. Verifica os códigos ISO no ficheiro da espécie.
+        </p>
+      )}
+    </>
+  ) : (
+    <p class="map-note">
+      A distribuição geográfica desta espécie ainda não foi definida.
+    </p>
+  )}
+
+  <p class="source-note">
+    Mapa baseado em fronteiras nacionais. O destaque de um país não significa
+    que a espécie ocupe todo o seu território.
+  </p>
+</section>
+
+<style>
+  .distribution {
+    margin: 1rem 0;
+    padding: 1.5rem;
+    border: 1px solid #e7eae4;
+    border-radius: 16px;
+    background: #fff;
+  }
+
+  .heading {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .eyebrow {
+    margin: 0 0 0.5rem;
+    color: #347451;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+  }
+
+  h2 {
+    margin: 0;
+    color: #202a23;
+    font-size: clamp(1.5rem, 3vw, 2rem);
+    line-height: 1.2;
+    letter-spacing: -0.04em;
+  }
+
+  .legend {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #667068;
+    font-size: 0.8rem;
+  }
+
+  .legend-color {
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+    background: #347451;
+  }
+
+  .map-frame {
+    overflow: hidden;
+    border-radius: 10px;
+    background: #f3f6f1;
+  }
+
+  svg {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  .country {
+    fill: #e0e6df;
+    stroke: #fff;
+    stroke-width: 0.8;
+    stroke-linejoin: round;
+    vector-effect: non-scaling-stroke;
+  }
+
+  .country.highlighted {
+    fill: #347451;
+    stroke: #fff;
+    stroke-width: 1;
+  }
+
+  .country-list {
+    margin-top: 1.25rem;
+  }
+
+  .country-list h3 {
+    margin: 0 0 0.6rem;
+    color: #202a23;
+    font-size: 0.95rem;
+  }
+
+  .country-list ul {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .country-list li {
+    padding: 0.4rem 0.7rem;
+    border-radius: 7px;
+    background: #edf4ed;
+    color: #285b40;
+    font-size: 0.82rem;
+  }
+
+  .map-note,
+  .source-note {
+    color: #667068;
+    font-size: 0.85rem;
+    line-height: 1.6;
+  }
+
+  .source-note {
+    margin: 1rem 0 0;
+    font-size: 0.75rem;
+  }
+
+  @media (max-width: 560px) {
+    .distribution {
+      padding: 1rem;
+    }
+
+    .heading {
+      align-items: flex-start;
+      flex-direction: column;
+    }
+  }
+</style>
